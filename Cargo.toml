@@ -1,0 +1,45 @@
+[package]
+name = "meshtal"
+version = "0.12.0"
+edition = "2021"
+authors = ["Tony <repositony@outlook.com>"]
+description = "A collection of useful analysis tools for interacting with MCNP meshtal files"
+repository = "https://github.com/repositony/meshtal"
+keywords = ["mesh", "meshtal", "mcnp", "wwout", "vtk"]
+license = "GPL-3.0 license"
+
+[dependencies]
+kdam = "0.5.0"
+serde = "1.0"
+serde_json = "1.0"
+textwrap = "0.16"
+log = "0.4.17"
+stderrlog = "0.5.4"
+clap = { version = "4.2.2", features = ["derive", "wrap_help"] }
+vtkio = { git = "https://github.com/elrnv/vtkio.git", rev = "0c14e90" }
+bincode = "1.3.3"
+nom = "7.1.3"
+anyhow = "1.0.72"
+
+[dev-dependencies]
+rstest = "0.18.2"
+
+[[bin]]
+name = "mesh2vtk"
+path = "src/bin/mesh2vtk.rs"
+
+[[bin]]
+name = "mesh2ww"
+path = "src/bin/mesh2ww.rs"
+
+[[bin]]
+name = "pointextract"
+path = "src/bin/pointextract.rs"
+
+[[bin]]
+name = "splitmesh"
+path = "src/bin/splitmesh.rs"
+
+[[bin]]
+name = "posvol"
+path = "src/bin/posvol.rs"
