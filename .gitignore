@@ -2,3 +2,4 @@
 /release
 Cargo.lock
 *.vscode
+tmp_*
