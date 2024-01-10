@@ -293,7 +293,7 @@ pub fn weights_to_vtk() -> Result<Vtk> {
 /// few theta bins. The number of theta bins can be increased to round off these
 /// edges. This simply subdivides the voxels by an integer number of theta bins.
 ///
-/// ![Cylindrical mesh resolution option](https://github.com/repositony/meshtal/assets/63453741/9d77492f-0cea-42a5-81f4-36349fc20ec6)
+/// ![Cylindrical mesh resolution option](https://github.com/repositony/meshtal/blob/main/data/assets/cylindrical_mesh_resolution.png)
 ///
 /// For example:
 ///
@@ -600,12 +600,12 @@ impl MeshToVtk {
         cell_types: &mut Vec<CellType>,
     ) {
         let mut step = 2.0 * std::f64::consts::PI / (mesh.kints as f64);
-        step /= self.resolution as f64;
+        step /= self.get_resolution(&mesh.kints) as f64;
         let r = mesh.imesh[1];
 
         // wedge type has 6 verticies
         // only need to find three and then repeat for the lower layer
-        for i in 0..(mesh.kints * self.resolution as usize) {
+        for i in 0..(mesh.kints * self.get_resolution(&mesh.kints) as usize) {
             let t0 = step * (i as f64);
             let t1 = step * (i as f64 + 1.0);
 
@@ -650,13 +650,13 @@ impl MeshToVtk {
         cell_types: &mut Vec<CellType>,
     ) {
         let mut step = 2.0 * std::f64::consts::PI / (mesh.kints as f64);
-        step /= self.resolution as f64;
+        step /= self.get_resolution(&mesh.kints) as f64;
         let r0 = mesh.imesh[r_idx];
         let r1 = mesh.imesh[r_idx + 1];
 
         // voxel type has 8 verticies
         // only need to find 4 and then repeat at lower layer
-        for i in 0..(mesh.kints * self.resolution as usize) {
+        for i in 0..(mesh.kints * self.get_resolution(&mesh.kints) as usize) {
             let t0 = step * (i as f64);
             let t1 = step * (i as f64 + 1.0);
 
@@ -723,8 +723,8 @@ impl MeshToVtk {
                     .into_iter()
                     .unzip();
 
-                results = Self::repeat_values(results, self.resolution);
-                errors = Self::repeat_values(errors, self.resolution);
+                results = Self::repeat_values(results, self.get_resolution(&mesh.kints));
+                errors = Self::repeat_values(errors, self.get_resolution(&mesh.kints));
 
                 let cell_data = DataArray {
                     name: self.group_name(*e, *t) + "result",
@@ -771,6 +771,22 @@ impl MeshToVtk {
                 .unwrap(),
         };
         offsets.push(offset);
+    }
+
+    /// Fix the resolution issue in the background for 1-2 theta bins
+    ///
+    /// For performance the converter would have to be mutable, or the user
+    /// would have to know to set the resolution for a couple of special cases.
+    /// This is just easier for everyone.
+    fn get_resolution(&self, n_bins: &usize) -> u8 {
+        match n_bins {
+            // only one theta bin, minimim verticies needed will be 3
+            1 => self.resolution.max(3),
+            // only two theta bins, minimim verticies needed will be 4
+            2 => self.resolution.max(2),
+            // anything else is fine
+            _ => self.resolution,
+        }
     }
 }
 
