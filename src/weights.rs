@@ -180,7 +180,7 @@ pub fn write_single_particle(weight_window: &WeightWindow, output: &str) {
 /// Combine multiple weight window sets into a single wwout file
 ///
 /// A [WeightWindow] instance corresponds to a full set of weight windows for a
-/// single particle type. This can be written simply uding the
+/// single particle type. This can be written simply using the
 /// [write_single_particle()] function or calling
 /// [write()](crate::weights::WeightWindow::write) directly.
 ///
@@ -204,15 +204,16 @@ pub fn write_single_particle(weight_window: &WeightWindow, output: &str) {
 /// // Convert the mesh into a weight window set
 /// let ww_sets = [mesh_to_ww(&photon_mesh, 0.5, 1.0, false),
 ///                mesh_to_ww(&neutron_mesh, 0.5, 1.0, false)];
-/// let weight_window = write_multi_particle(&ww_sets, "test_multi.ww");
+/// let weight_window = write_multi_particle(&ww_sets, "test_multi.ww", false);
 /// ```
-pub fn write_multi_particle(weight_windows: &[WeightWindow], output: &str) {
+pub fn write_multi_particle(weight_windows: &[WeightWindow], output: &str, padded: bool) {
     let ww_list = preprocess_set(weight_windows);
 
     // assume fine >2 meshes for now
     let f = File::create(output).expect("Unable to create file");
     let mut f = BufWriter::new(f);
-    f.write_all(combined_header(&ww_list).as_bytes()).unwrap();
+    f.write_all(combined_header(&ww_list, padded).as_bytes())
+        .unwrap();
     f.write_all(ww_list[0].block_1().as_bytes()).unwrap();
     f.write_all(ww_list[0].block_2().as_bytes()).unwrap();
 
@@ -931,6 +932,7 @@ fn preprocess_set(weight_windows: &[WeightWindow]) -> Vec<&WeightWindow> {
     // Get rid of any that do not mach the mesh geometry
     let target = ww_list[0];
     ww_list.retain(|&ww| is_geometry_match(ww, target));
+    ww_list.retain(|&ww| ww.particle != Particle::Unknown);
     ww_list
 }
 
@@ -968,8 +970,9 @@ fn is_geometry_match(a: &WeightWindow, b: &WeightWindow) -> bool {
 /// | 7i10              |  nt(1)...nt(ni) if iv=2   |
 /// | 7i10              |  ne(1)...ne(ni)           |
 ///
-/// The 7i is interesting as it seems to suggest a maximum of 7 particle types.
-fn combined_header(weight_windows: &[&WeightWindow]) -> String {
+/// The 7i suggests a maximum of 7 particle types per line, and this will need
+/// zero padding to ensure all the correct particle types are used.
+fn combined_header(weight_windows: &[&WeightWindow], padded: bool) -> String {
     let base = weight_windows[0];
     let iv = if weight_windows.iter().any(|ww| ww.iv == 2) {
         2
@@ -977,20 +980,19 @@ fn combined_header(weight_windows: &[&WeightWindow]) -> String {
         1
     };
 
-    // if iv ni nr probid
-    let mut s = f!(
-        "{:>10}{:>10}{:>10}{:>10}\n",
-        base.f,
-        iv,
-        weight_windows.len(),
-        base.nr,
-    );
+    let (nt, ne) = match padded {
+        true => particle_lists_padded(weight_windows),
+        false => particle_lists_unpadded(weight_windows),
+    };
 
-    let mut count: u8 = 1;
+    // if iv ni nr probid
+    let mut s = f!("{:>10}{:>10}{:>10}{:>10}\n", base.f, iv, ne.len(), base.nr,);
+
     // nt(1) ... nt(ni) [if iv=2]
+    let mut count: u8 = 1;
     if iv == 2 {
-        for ww in weight_windows {
-            s += &f!("{:>10}", ww.nt);
+        for n_times in nt {
+            s += &f!("{:>10}", n_times);
             s += &track_newlines(&mut count, 7); // 7i10 => split on 7
         }
         if !s.ends_with('\n') {
@@ -999,8 +1001,9 @@ fn combined_header(weight_windows: &[&WeightWindow]) -> String {
     }
 
     // ne(1) ... ne(ni)
-    for ww in weight_windows {
-        s += &f!("{:>10}", ww.ne);
+    count = 1;
+    for n_energies in ne {
+        s += &f!("{:>10}", n_energies);
         s += &track_newlines(&mut count, 7); // 7i10 => split on 7
     }
 
@@ -1009,4 +1012,33 @@ fn combined_header(weight_windows: &[&WeightWindow]) -> String {
     }
 
     s
+}
+
+/// List of number of particle time/energy groups
+fn particle_lists_unpadded(weight_windows: &[&WeightWindow]) -> (Vec<usize>, Vec<usize>) {
+    (
+        weight_windows.iter().map(|ww| ww.nt).collect(),
+        weight_windows.iter().map(|ww| ww.ne).collect(),
+    )
+}
+
+/// List of number of particle time/energy groups, with 0 for missing types
+fn particle_lists_padded(weight_windows: &[&WeightWindow]) -> (Vec<usize>, Vec<usize>) {
+    let max = weight_windows
+        .iter()
+        .max_by_key(|ww| ww.particle)
+        .unwrap()
+        .particle
+        .id() as usize;
+
+    let mut nt = vec![0_usize; max];
+    let mut ne = vec![0_usize; max];
+
+    for ww in weight_windows {
+        let idx = (ww.particle.id() - 1) as usize;
+        nt[idx] = ww.nt;
+        ne[idx] = ww.ne;
+    }
+
+    (nt, ne)
 }
