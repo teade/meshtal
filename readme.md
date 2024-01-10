@@ -155,7 +155,7 @@ Unfortunately, this can result in "low-resolution" plots for meshes with
 few theta bins. The number of theta bins can be increased to round off these
 edges. This simply subdivides the voxels by an integer number of theta bins.
 
-![Cylindrical mesh resolution option](https://github.com/repositony/meshtal/blob/main/data/cylindrical_mesh_resolution.png)
+![Cylindrical mesh resolution option](https://github.com/repositony/meshtal/blob/main/data/assets/cylindrical_mesh_resolution.png)
 
 ```bash
 # Subdivide voxels into 3 to round off cylindrical unstructured mesh
