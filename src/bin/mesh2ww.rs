@@ -130,7 +130,7 @@ fn main() -> Result<()> {
     debug!("Output = \"{output}\"");
 
     info!("Writing to {output}");
-    weights::write_multi_particle(&particle_weights, &output);
+    weights::write_multi_particle(&particle_weights, &output, is_padded());
 
     for ww in particle_weights {
         info!(
@@ -140,7 +140,7 @@ fn main() -> Result<()> {
         );
     }
 
-    // let command = cli_init();
+    info!("Conversion complete");
     Ok(())
 }
 
@@ -288,6 +288,12 @@ fn is_quiet() -> bool {
 }
 
 #[doc(hidden)]
+fn is_padded() -> bool {
+    // if the user sets --trim, remove the padding
+    !env::args().any(|a| a.as_str() == "--trim")
+}
+
+#[doc(hidden)]
 fn collect_verbosity() -> usize {
     env::args()
         .filter(|p| (p.starts_with("-v") || p.as_str() == "--verbose"))
@@ -425,13 +431,14 @@ fn debug_args() -> [Arg; 3] {
 }
 
 #[doc(hidden)]
-fn optional_args() -> [Arg; 5] {
+fn optional_args() -> [Arg; 6] {
     [
         arg_power(),
         arg_error(),
         arg_total(),
         arg_scale(),
         arg_output(),
+        arg_padding(),
     ]
 }
 
@@ -573,4 +580,14 @@ fn arg_scale() -> Arg {
             .default_value("1.0")
             .value_name("cst")
             .hide_default_value(true)
+}
+
+#[doc(hidden)]
+fn arg_padding() -> Arg {
+    Arg::new("trim")
+        .long("trim")
+        .help_heading("Global options")
+        .help("Exclude unused particle types from header")
+        .required(false)
+        .action(ArgAction::SetTrue)
 }
