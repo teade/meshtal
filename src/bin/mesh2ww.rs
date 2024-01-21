@@ -19,10 +19,10 @@
 //! ### Tuning weights
 //!
 //! Typical usage will generally define a de-tuning factor (`-p`/`--power`) and
-//! the relative error cutoff (`-e`/`--error`) for generating weights.  
+//! possibly a relative error cutoff (`-e`/`--error`) for generating weights.  
 //!
 //! ```bash
-//! mesh2ww run0.msht 104 --power 0.70 --error 0.1
+//! mesh2ww run0.msht 104 --power 0.70 --error 0.5
 //! ```
 //!
 //! The `--power` value modifies calculated weights by `w => w^(power)`, which
@@ -371,9 +371,9 @@ fn cli_init() -> Command {
 fn cli_long_help() -> &'static str {
     "Conversion of meshtal file meshes to MCNP weight windows
 
-The MAGIC method is used to convert tallies to mesh-based global weight windows. Weights are calculated as (0.5 * (flux / reference_flux)).powf(power), with any voxels with errors larger than --error set to analogue. The reference flux is the maximum seen within each energy/time group voxel set.
-
 For multiple particle types, use the '+' operator to combine multiple tallies that have the same dimensions.
+
+The MAGIC method is used to convert tallies to mesh-based global weight windows. Weights are calculated as (0.5 * (flux / reference_flux)).powf(power), with any voxels with errors larger than --error set to analogue. The reference flux is the maximum seen within each energy/time group voxel set.
 
 Supports all mesh output formats for rectangular and cylindrical geometries. 
 
@@ -383,8 +383,11 @@ Typical examples
     Convert single tally with defaults  
         $ mesh2ww run0.msht 14
 
-    Change the softening factor and error cut  
-        $ mesh2ww run0.msht 14 -p 0.8 -e 0.1
+    Change the softening/de-tuning factor  
+        $ mesh2ww run0.msht 14 --power 0.8 
+
+    Only generate weights for voxels with <10% error
+        $ mesh2ww run0.msht 14 --error 0.1
 
     Only use the 'Total' energy/time groups 
         $ mesh2ww run0.msht 14 --total
@@ -412,7 +415,7 @@ CuV voidoff=yes will not output results for void cells which will therefore alwa
 
 #[doc(hidden)]
 fn after_help_message() -> &'static str {
-    "Typical use: mesh2ww run0.msht 104 -p 0.70 -e 0.1 -o wwout\n\nSee --help for detail and examples"
+    "Typical use: mesh2ww run0.msht 104 -p 0.70 -o winp\n\nSee --help for detail and examples"
 }
 
 #[doc(hidden)]
@@ -540,12 +543,12 @@ fn arg_error() -> Arg {
             .help_heading("Weight options")
             .help("Maximum rel. error, use analogue above")
             .long_help(
-                "Maximum rel. error, use analogue above\n\nDefault 0.1 (10%). Relative errors above the provided value are set to zero, and will continue to use analogue transport until better statistics are available.",
+                "Maximum rel. error, use analogue above\n\nDefault 1.0 (100%). Relative errors above the provided value are set to zero, and will continue to use analogue transport until better statistics are available.",
             )
             .required(false)
             .action(ArgAction::Set)
             .value_parser(value_parser!(f64))
-            .default_value("0.1")
+            .default_value("1.0")
             .value_name("value")
             .hide_default_value(true)
 }
