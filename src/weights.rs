@@ -211,11 +211,16 @@ pub fn write_multi_particle(weight_windows: &[WeightWindow], output: &str, padde
     // assume fine >2 meshes for now
     let f = File::create(output).expect("Unable to create file");
     let mut f = BufWriter::new(f);
+
+    debug!(" - writing block 1");
     f.write_all(combined_header(&ww_list, padded).as_bytes())
         .unwrap();
     f.write_all(ww_list[0].block_1().as_bytes()).unwrap();
+
+    debug!(" - writing block 2");
     f.write_all(ww_list[0].block_2().as_bytes()).unwrap();
 
+    debug!(" - writing block 3");
     for ww in ww_list {
         f.write_all(ww.block_3().as_bytes()).unwrap();
     }
@@ -742,7 +747,7 @@ fn weight_from_voxels(mesh: &Mesh, voxels: &[Voxel], power: f64, max_error: f64)
         .max_by(|a, b| a.total_cmp(b))
         .unwrap();
 
-    debug!("Reference flux: {flux_ref:.5e}");
+    debug!("Reference flux: {}", flux_ref.sci(5, 2));
 
     // guard against groups with no results
     if flux_ref == 0.0 {
@@ -896,10 +901,10 @@ fn relevant_groups(mesh: &Mesh, total_only: bool) -> (Vec<Group>, Vec<Group>) {
 /// Fix ridiculous values that may happen for CuV
 fn constrain_weights(weight: f64) -> f64 {
     if weight < 1.0e-99 {
-        trace!("Weight {weight:.2e} < 1e-99, setting to analogue");
+        // trace!("Weight {weight:.2e} < 1e-99, setting to analogue");
         0.0
     } else if weight >= 1.0e+100 {
-        trace!("Weight {weight:.2e} >= 1e+100, setting to 9.999E+99 to preserve formatting");
+        // trace!("Weight {weight:.2e} >= 1e+100, setting to 9.999E+99 to preserve formatting");
         9.999e99
     } else {
         weight
