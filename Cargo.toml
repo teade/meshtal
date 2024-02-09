@@ -20,6 +20,7 @@ vtkio = { git = "https://github.com/elrnv/vtkio.git", rev = "0c14e90" }
 bincode = "1.3.3"
 nom = "7.1.3"
 anyhow = "1.0.72"
+itertools = "0.12.1"
 
 [dev-dependencies]
 rstest = "0.18.2"

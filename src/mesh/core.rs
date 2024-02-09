@@ -79,7 +79,7 @@ use clap::ValueEnum;
 /// #### Indexing
 ///
 /// \sdgughf
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Mesh {
     /// Mesh tally number e.g fmesh104 => id = 104
     pub id: u32,
